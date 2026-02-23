@@ -110,9 +110,46 @@ async def _scheduler_loop() -> None:
         await asyncio.sleep(30)   # check every 30 seconds
 
 
+def _bootstrap_token_cache() -> None:
+    """Restore Google OAuth token cache files from env vars on Render startup.
+
+    On Render's ephemeral filesystem, .token_cache/ is wiped on every deploy.
+    We store the base64-encoded token JSON as GOOGLE_TOKEN_SHEETS_B64 (and
+    GOOGLE_TOKEN_EMAIL_B64) env vars and restore them here so Sheets/Gmail
+    calls work without re-authorisation.
+    """
+    import base64
+    import hashlib
+
+    cache_path = Path(os.getenv("TOKEN_CACHE_PATH", "./.token_cache"))
+    cache_path.mkdir(parents=True, exist_ok=True)
+
+    mapping = {
+        "GOOGLE_TOKEN_SHEETS_B64": os.getenv("LEAD_GEN_SHEET_USER", "natalieoppenheimer4@gmail.com"),
+        "GOOGLE_TOKEN_EMAIL_B64":  os.getenv("LEAD_GEN_GMAIL_USER",  "natalie@equestrolabs.com"),
+    }
+    for env_key, user_id in mapping.items():
+        b64 = os.getenv(env_key, "")
+        if not b64:
+            continue
+        try:
+            json_bytes = base64.b64decode(b64)
+            key = hashlib.sha256(f"clawbot_token_{user_id}".encode()).hexdigest()
+            dest = cache_path / f"{key}.json"
+            if not dest.exists():          # don't overwrite a fresher cached token
+                dest.write_bytes(json_bytes)
+                dest.chmod(0o600)
+                logger.info("[Startup] Restored token cache for %s from env var %s", user_id, env_key)
+            else:
+                logger.info("[Startup] Token cache already present for %s", user_id)
+        except Exception as exc:
+            logger.warning("[Startup] Could not restore token cache for %s: %s", user_id, exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start the background scheduler on server startup."""
+    """Restore token cache then start the background scheduler on server startup."""
+    _bootstrap_token_cache()
     task = asyncio.create_task(_scheduler_loop())
     logger.info("[Startup] Lead-gen scheduler started.")
     try:
