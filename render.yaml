@@ -1,44 +1,55 @@
-# Deploy Clawbot API on Render
-# See: https://render.com/docs/deploy-fastapi
+# Deploy Natalie website service on Render
+# https://render.com/docs/deploy-fastapi
 services:
   - type: web
-    name: clawbot-api
+    name: websites-natalie
     runtime: python
-    plan: starter  # Use starter for always-on (free tier sleeps after 15min)
+    plan: starter
     healthCheckPath: /health
 
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn clawbot_api:app --host 0.0.0.0 --port $PORT
 
+    # Pin Python 3.11 — required for zoneinfo (stdlib since 3.9) and modern typing syntax
+    pythonVersion: "3.11.9"
+
     envVars:
-      # Google OAuth (REQUIRED - set these in Render dashboard)
+      - key: RENDER_EXTERNAL_URL
+        value: https://websites-natalie.onrender.com
+
+      - key: TOKEN_CACHE_TYPE
+        value: file
+
+      - key: ENABLE_MULTI_AGENT
+        value: "true"
+
+      - key: AGENT_ROUTING_STRATEGY
+        value: intent_based
+
+      # Set these in the Render dashboard (never commit secrets)
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        sync: false  # Set to: https://your-app.onrender.com/auth/callback
-      
-      # Token Cache (file-based by default, or use Redis addon)
-      - key: TOKEN_CACHE_TYPE
-        value: file
-      
-      # Multi-Agent Configuration
-      - key: ENABLE_MULTI_AGENT
-        value: "true"
-      - key: AGENT_ROUTING_STRATEGY
-        value: intent_based
-      
-      # Optional: TextLink SMS (if using SMS features)
+        sync: false
+      - key: LEAD_GEN_SHEET_ID
+        sync: false
+      - key: LEAD_GEN_SHEET_USER
+        sync: false
+      - key: LEAD_GEN_GMAIL_USER
+        sync: false
       - key: TEXTLINK_API_KEY
         sync: false
-      
-      # Redis Configuration (if using Redis addon, uncomment and set)
-      # - key: TOKEN_CACHE_TYPE
-      #   value: redis
-      # - key: REDIS_HOST
-      #   sync: false
-      # - key: REDIS_PORT
-      #   value: "6379"
-      # - key: REDIS_PASSWORD
-      #   sync: false
+      - key: TEXTLINK_FROM_NUMBER
+        sync: false
+      - key: NATALIE_EMAIL
+        sync: false
+      - key: NATALIE_EMAIL_PASSWORD
+        sync: false
+      - key: NATALIE_SMTP_HOST
+        sync: false
+      - key: NATALIE_SMTP_PORT
+        sync: false
+      - key: RAPIDAPI_KEY
+        sync: false
