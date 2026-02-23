@@ -408,7 +408,19 @@
       var data = await res.json();
       if (!res.ok) throw new Error(data.detail || data.message || JSON.stringify(data));
       resultDiv.className = 'run-result success';
-      resultDiv.textContent = data.message || "We'll build your SEO alternative and be in touch.";
+
+      // Build a rich success message with clickable links
+      var html = '<strong>🎉 Done!</strong> Natalie is reaching out now.<br/><br/>';
+      if (data.demo_url) {
+        html += '👀 <a href="' + data.demo_url + '" target="_blank" style="color:#1d4ed8;font-weight:600;">View your rebuilt demo site →</a><br/>';
+      }
+      if (data.report_url) {
+        html += '📊 <a href="' + data.report_url + '" target="_blank" style="color:#1d4ed8;font-weight:600;">View your audit report →</a><br/>';
+      }
+      if (data.score != null) {
+        html += '<span style="color:#6b7280;font-size:13px;">Current score: ' + data.score + '/100 · ' + (data.findings_count || 0) + ' issue(s) found</span>';
+      }
+      resultDiv.innerHTML = html;
       resultDiv.style.display = 'block';
       document.getElementById('ctaForm').reset();
     } catch (err) {

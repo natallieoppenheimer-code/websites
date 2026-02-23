@@ -1125,7 +1125,7 @@ async def run_campaign_leads_sync(
 
 _AUDIT_DASHBOARD_PATH = Path(__file__).parent / "clawbot" / "integrations" / "website_audit" / "audit_dashboard.html"
 _DEMOS_DIR = Path(__file__).parent / "clawbot" / "integrations" / "website_audit" / "demos"
-_RENDER_BASE = os.getenv("RENDER_EXTERNAL_URL", "https://websites-natalie.onrender.com")
+_RENDER_BASE = os.getenv("RENDER_EXTERNAL_URL", "https://websites-pilv.onrender.com")
 
 
 @app.get("/audit/dashboard", response_class=HTMLResponse, tags=["Website Audit"])
@@ -1134,6 +1134,25 @@ async def audit_dashboard():
     if not _AUDIT_DASHBOARD_PATH.exists():
         raise HTTPException(status_code=404, detail="Audit dashboard not found")
     return HTMLResponse(content=_AUDIT_DASHBOARD_PATH.read_text())
+
+
+@app.get("/audit/report/{slug}", response_class=HTMLResponse, tags=["Website Audit"])
+async def audit_report(slug: str):
+    """
+    Serve a shareable, read-only audit report for a specific business.
+    The report is stored when the customer registers via /website-customers/register.
+    Share this link with the prospect — it shows their score, findings, fixes, and demo.
+    """
+    from clawbot.integrations.website_audit.report_store import load_report
+    from clawbot.integrations.website_audit.report_template import render_report_html
+
+    report = load_report(slug)
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No report found for '{slug}'. Run an audit and register the customer first.",
+        )
+    return HTMLResponse(content=render_report_html(report, render_base_url=_RENDER_BASE))
 
 
 @app.get("/demos", tags=["Website Demos"])
@@ -1310,10 +1329,49 @@ async def generate_demo(payload: DemoGenerateRequest):
 @app.post("/website-customers/register", tags=["Website Customers"])
 async def website_customers_register(payload: WebsiteCustomerRegister):
     """
-    Register a prospect AND auto-generate their demo site immediately.
-    Returns the shareable demo URL right away.
+    Register a prospect, auto-generate their demo site, save the audit report,
+    and have Natalie send an SMS + email with the report link and demo link.
+
+    Flow:
+      1. Run a fresh audit on current_site_url (or use audit_score/findings if provided)
+      2. Build the rebuilt demo site
+      3. Save a shareable report to disk
+      4. Register customer in Google Sheet
+      5. Natalie sends SMS + email to the customer
     """
+    from clawbot.integrations.website_audit.generator import slugify
+    from clawbot.integrations.website_audit.report_store import save_report
+    from clawbot.integrations.website_customers.outreach import send_audit_outreach
+
     try:
+        slug = slugify(payload.business_name)
+        demo_url = f"{_RENDER_BASE}/demos/{slug}"
+        report_url = f"{_RENDER_BASE}/audit/report/{slug}"
+
+        # Run fresh audit if we have a URL
+        findings = []
+        score = payload.audit_score
+        if payload.current_site_url:
+            try:
+                from clawbot.integrations.website_audit import run_audit, report_to_dict
+                report = await run_audit(payload.current_site_url)
+                report_dict = report_to_dict(report)
+                findings = report_dict.get("findings", [])
+                if report.summary_score is not None:
+                    score = report.summary_score
+
+                # Persist report so /audit/report/{slug} can serve it
+                save_report(
+                    slug=slug,
+                    business_name=payload.business_name,
+                    audited_url=payload.current_site_url,
+                    report_dict=report_dict,
+                    demo_url=demo_url,
+                )
+            except Exception as audit_exc:
+                logger.warning("[register] Audit failed, continuing without report: %s", audit_exc)
+
+        # Register in sheet + generate demo HTML
         from clawbot.integrations.website_customers import register_customer
         row = register_customer(
             business_name=payload.business_name,
@@ -1323,16 +1381,34 @@ async def website_customers_register(payload: WebsiteCustomerRegister):
             business_phone=payload.business_phone,
             service_area=payload.service_area,
             category=payload.category,
-            audit_score=payload.audit_score,
-            audit_findings_count=payload.audit_findings_count,
+            audit_score=score,
+            audit_findings_count=len(findings) if findings else payload.audit_findings_count,
         )
-        demo_url = row.get("Alternative Site URL", "")
+
+        # Natalie sends SMS + email in the background (don't block the response)
+        import asyncio
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: send_audit_outreach(
+                business_name=payload.business_name,
+                slug=slug,
+                score=score,
+                findings=findings,
+                demo_url=demo_url,
+                contact_email=payload.contact_email or "",
+                contact_phone=payload.business_phone or payload.contact_phone or "",
+            )
+        )
+
         return {
             "ok": True,
             "id": row["ID"],
-            "slug": row.get("Slug", ""),
+            "slug": slug,
             "demo_url": demo_url,
-            "message": f"Demo site built and ready to share: {demo_url}",
+            "report_url": report_url,
+            "score": score,
+            "findings_count": len(findings),
+            "message": f"Demo built and Natalie is reaching out to {payload.business_name} now.",
         }
     except Exception as exc:
         logger.error(f"[website-customers/register] Error: {exc}", exc_info=True)
