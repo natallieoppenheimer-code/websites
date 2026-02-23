@@ -8,8 +8,6 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn clawbot_api:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.9"
       - key: RENDER_EXTERNAL_URL
         value: https://websites-natalie.onrender.com
       - key: TOKEN_CACHE_TYPE
