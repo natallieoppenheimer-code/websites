@@ -39,14 +39,16 @@ def send_audit_sms(
         return False
 
     score_str = f"{score:.0f}/100" if score is not None else "reviewed"
-    issues_str = f"{findings_count} issue{'s' if findings_count != 1 else ''}" if findings_count else "no issues"
+    issues_str = f"{findings_count} quick fix{'es' if findings_count != 1 else ''}" if findings_count else "all clear"
 
     msg = (
-        f"Hi! This is Natalie from Equestro Labs. "
-        f"I just audited {business_name}'s website — score: {score_str} ({issues_str} found). "
-        f"Full report: {report_url} | "
-        f"Free rebuilt demo: {demo_url} | "
-        f"Questions? Text me: {NATALIE_PHONE}"
+        f"Hi! 😊 This is Natalie from Equestro Labs — I hope this finds you well! "
+        f"I took a peek at {business_name}'s website and put together a free SEO report just for you "
+        f"(score: {score_str}, {issues_str}). "
+        f"I also went ahead and built a free demo showing what your site could look like — "
+        f"no strings attached, just wanted to show you what's possible! "
+        f"Report: {report_url} · Demo: {demo_url} "
+        f"Feel free to text me any time: {NATALIE_PHONE} 💙"
     )
 
     if _is_dry_run():
@@ -93,89 +95,130 @@ def send_audit_email(
         logger.warning("[outreach] No contact email — sending demo copy to Natalie")
 
     score_str = f"{score:.0f}/100" if score is not None else "reviewed"
+    score_color = "#16a34a" if (score or 0) >= 80 else ("#d97706" if (score or 0) >= 60 else "#dc2626")
 
     # Build findings rows for the email table
     rows = ""
     sev_emoji = {"critical": "🔴", "warning": "🟡", "info": "🔵"}
     for f in findings:
         emoji = sev_emoji.get(f.get("severity", "info"), "•")
+        import html as _html
         rows += f"""
         <tr style="border-bottom:1px solid #f3f4f6;">
-          <td style="padding:10px 12px;font-size:13px;">{emoji} {f.get("message","")}</td>
-          <td style="padding:10px 12px;font-size:13px;color:#374151;">{f.get("solution","")}</td>
+          <td style="padding:12px 14px;font-size:14px;color:#111827;">{emoji} {_html.escape(f.get("message",""))}</td>
+          <td style="padding:12px 14px;font-size:13px;color:#374151;">{_html.escape(f.get("solution",""))}</td>
         </tr>"""
 
     demo_block = ""
     if demo_url:
         demo_block = f"""
-      <div style="background:#1e40af;border-radius:12px;padding:24px;text-align:center;margin:24px 0;">
-        <p style="color:#fff;font-size:16px;font-weight:700;margin:0 0 12px;">
-          👀 We already built your free demo site!
+      <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:14px;padding:28px 24px;text-align:center;margin:28px 0;">
+        <p style="color:rgba(255,255,255,.85);font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.8px;">✨ Surprise — it's already done!</p>
+        <p style="color:#fff;font-size:18px;font-weight:800;margin:0 0 18px;line-height:1.3;">
+          We built a free demo of <br/>{business_name}'s new site
         </p>
-        <a href="{demo_url}" style="display:inline-block;background:#f97316;color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;">
-          View {business_name} — Rebuilt →
+        <a href="{demo_url}" style="display:inline-block;background:#f97316;color:#fff;font-weight:800;padding:14px 32px;border-radius:10px;text-decoration:none;font-size:15px;letter-spacing:.3px;">
+          See your new site →
         </a>
+        <p style="color:rgba(255,255,255,.65);font-size:12px;margin:14px 0 0;">No commitment. Totally free. Just showing you what's possible 💙</p>
       </div>"""
 
+    findings_section = ""
+    if findings:
+        findings_section = f"""
+    <h2 style="font-size:15px;font-weight:700;color:#111827;margin:28px 0 12px;">Here's what we found 🔍</h2>
+    <p style="font-size:14px;color:#6b7280;margin:0 0 16px;">Don't worry — these are all fixable! Here's a quick summary:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+      <thead>
+        <tr style="background:#f9fafb;">
+          <th style="padding:10px 14px;text-align:left;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;font-weight:600;">What we noticed</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;font-weight:600;">The easy fix</th>
+        </tr>
+      </thead>
+      <tbody>{rows}</tbody>
+    </table>"""
+    else:
+        findings_section = "<p style='color:#16a34a;font-weight:700;font-size:15px;'>✅ Great news — this site passes all SEO checks!</p>"
+
     html_body = f"""
-<html><body style="font-family:-apple-system,sans-serif;background:#f9fafb;padding:0;margin:0;">
-<div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;padding:0;margin:0;">
+<div style="max-width:600px;margin:40px auto 24px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);">
 
   <!-- Header -->
-  <div style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);padding:28px 32px;color:#fff;">
-    <p style="font-size:12px;opacity:.7;margin:0 0 4px;text-transform:uppercase;letter-spacing:1px;">Free Website Audit from Equestro Labs</p>
-    <h1 style="font-size:22px;font-weight:800;margin:0;">{business_name} — SEO Report</h1>
-    <p style="opacity:.8;font-size:14px;margin:8px 0 0;">Score: <strong>{score_str}</strong> · {len(findings)} issue{"s" if len(findings) != 1 else ""} found</p>
+  <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:32px 36px 28px;">
+    <p style="font-size:12px;color:rgba(255,255,255,.55);margin:0 0 6px;text-transform:uppercase;letter-spacing:1px;">A little gift from Equestro Labs 🎁</p>
+    <h1 style="font-size:24px;font-weight:800;color:#fff;margin:0 0 8px;line-height:1.2;">{business_name} — Free SEO Report</h1>
+    <div style="display:inline-block;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 16px;margin-top:4px;">
+      <span style="color:#fff;font-size:14px;font-weight:700;">Score: <span style="color:{score_color};">{score_str}</span></span>
+      <span style="color:rgba(255,255,255,.5);font-size:13px;"> · {len(findings)} thing{"s" if len(findings) != 1 else ""} to improve</span>
+    </div>
   </div>
 
-  <div style="padding:28px 32px;">
-    <p style="color:#374151;font-size:15px;margin:0 0 20px;">
-      Hi! I'm <strong>Natalie</strong> from Equestro Labs. I ran a free SEO audit on <strong>{business_name}</strong>'s website and wanted to share the results — along with a free demo of what the site could look like with proper SEO.
+  <div style="padding:32px 36px;">
+
+    <!-- Personal intro -->
+    <p style="color:#374151;font-size:16px;line-height:1.7;margin:0 0 6px;">
+      Hi there! 👋 I'm <strong style="color:#111827;">Natalie</strong> from Equestro Labs.
+    </p>
+    <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 24px;">
+      I came across <strong style="color:#111827;">{business_name}</strong> and loved what you're doing — so I went ahead and ran a completely free website audit, just to see where things stand. The good news? There are only a handful of things holding the site back, and they're all totally fixable. 🙌
     </p>
 
     {demo_block}
 
-    <!-- Report link -->
-    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 20px;margin-bottom:24px;text-align:center;">
-      <p style="font-size:14px;color:#1e40af;font-weight:600;margin:0 0 8px;">📊 Full interactive report</p>
-      <a href="{report_url}" style="color:#1d4ed8;font-size:14px;">{report_url}</a>
+    <!-- Report link pill -->
+    <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:18px 22px;margin-bottom:28px;text-align:center;">
+      <p style="font-size:14px;color:#1e40af;font-weight:700;margin:0 0 6px;">📊 Your full interactive report</p>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 10px;">Click the link below — it's yours, forever, completely free.</p>
+      <a href="{report_url}" style="color:#2563eb;font-size:14px;font-weight:600;word-break:break-all;">{report_url}</a>
     </div>
 
-    <!-- Findings table -->
-    {"<h2 style='font-size:16px;font-weight:700;color:#111;margin:0 0 12px;'>Issues Found</h2><table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;'><thead><tr style='background:#f9fafb;'><th style='padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;text-transform:uppercase;'>Issue</th><th style='padding:10px 12px;text-align:left;font-size:12px;color:#6b7280;text-transform:uppercase;'>How to Fix</th></tr></thead><tbody>" + rows + "</tbody></table>" if findings else "<p style='color:#16a34a;font-weight:600;'>✅ No issues found — this site passes all SEO checks!</p>"}
+    {findings_section}
 
-    <div style="margin-top:28px;padding-top:24px;border-top:1px solid #f3f4f6;text-align:center;">
-      <p style="color:#374151;font-size:14px;margin:0 0 16px;">
-        Ready to fix these issues and launch your new site? I'm happy to walk you through it — no jargon, no pressure.
+    <!-- CTA -->
+    <div style="margin-top:32px;padding:28px 24px;background:#f0fdf4;border-radius:14px;text-align:center;">
+      <p style="font-size:16px;font-weight:700;color:#111827;margin:0 0 8px;">Want us to fix this for you? 🚀</p>
+      <p style="color:#374151;font-size:14px;line-height:1.6;margin:0 0 20px;">
+        I'd love to walk you through everything — no jargon, no pressure, no catch. Just a quick friendly chat about what we can do for {business_name}.
       </p>
-      <a href="mailto:natalie@equestrolabs.com" style="display:inline-block;background:#1e40af;color:#fff;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;margin-right:8px;">
-        Reply to this email
+      <a href="mailto:natalie@equestrolabs.com?subject=Re: {business_name} website" style="display:inline-block;background:#1e40af;color:#fff;font-weight:700;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:14px;margin:0 6px 8px;">
+        💌 Reply to this email
       </a>
-      <a href="sms:+16692587531" style="display:inline-block;background:#16a34a;color:#fff;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;">
-        Text Natalie
+      <a href="sms:{NATALIE_PHONE}" style="display:inline-block;background:#16a34a;color:#fff;font-weight:700;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:14px;margin:0 6px 8px;">
+        💬 Text me directly
       </a>
     </div>
   </div>
 
-  <div style="background:#f9fafb;padding:16px 32px;border-top:1px solid #f3f4f6;">
-    <p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">
-      Natalie · Equestro Labs · natalie@equestrolabs.com · {NATALIE_PHONE}<br/>
-      <a href="{report_url}" style="color:#9ca3af;">View your full report</a>
+  <!-- Footer -->
+  <div style="background:#f9fafb;padding:18px 36px;border-top:1px solid #f3f4f6;">
+    <p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;line-height:1.7;">
+      Sent with love by Natalie · Equestro Labs<br/>
+      natalie@equestrolabs.com · {NATALIE_PHONE}<br/>
+      <a href="{report_url}" style="color:#9ca3af;text-decoration:underline;">View your report anytime</a>
     </p>
   </div>
 </div>
 </body></html>"""
 
     text_body = (
-        f"Hi, I'm Natalie from Equestro Labs.\n\n"
-        f"I audited {business_name}'s website — score: {score_str}, {len(findings)} issue(s) found.\n\n"
-        f"Full report: {report_url}\n"
-        f"Free rebuilt demo: {demo_url}\n\n"
-        f"Reply to this email or text me at {NATALIE_PHONE} to discuss next steps.\n\n"
-        f"Best,\nNatalie\nEquestro Labs | equestrolabs.com"
+        f"Hi! 😊 I'm Natalie from Equestro Labs — I hope this finds you well!\n\n"
+        f"I came across {business_name} and loved what you're doing, so I went ahead and ran a "
+        f"free SEO audit on your website. Here's a quick summary:\n\n"
+        f"  Score: {score_str}\n"
+        f"  Issues found: {len(findings)}\n\n"
+        f"The great news? Every single issue is fixable — and I also went ahead and built a free "
+        f"demo showing what {business_name}'s site could look like all polished up. No strings "
+        f"attached, I just wanted to show you what's possible!\n\n"
+        f"  Your full report (free, forever): {report_url}\n"
+        f"  Your free demo site: {demo_url}\n\n"
+        f"I'd love to chat whenever you're ready — even just a quick text. "
+        f"No pressure at all, just here to help!\n\n"
+        f"Warmly,\nNatalie\nEquestro Labs\n"
+        f"natalie@equestrolabs.com · {NATALIE_PHONE}"
     )
 
-    subject = f"Your free website audit — {business_name} scored {score_str}"
+    subject = f"I built something free for {business_name} 🎁"
 
     if _is_dry_run():
         logger.info("[outreach][DRY RUN] Email to %s — %s", to_email, subject)
