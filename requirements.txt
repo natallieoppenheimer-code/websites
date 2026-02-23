@@ -1,15 +1,11 @@
 fastapi>=0.68.0
-uvicorn>=0.15.0
+uvicorn[standard]>=0.15.0
 httpx>=0.23.0
 python-dotenv>=0.19.0
-# Pydantic v1 — works on Python 3.7+; v2 requires 3.8+
 pydantic>=1.10.0,<2.0.0
-# pydantic-settings is optional (config.py falls back to env vars); skip for broad compatibility
-# pydantic-settings>=2.0.0
-google-auth>=2.23.0
-google-auth-oauthlib>=1.1.0
-google-auth-httplib2>=0.1.1
-google-api-python-client>=2.100.0
-redis>=4.0.0
-python-dateutil>=2.8.2
-beautifulsoup4>=4.12.0
+google-auth>=2.0.0
+google-auth-oauthlib>=0.5.0
+google-auth-httplib2>=0.1.0
+google-api-python-client>=2.0.0
+python-dateutil>=2.8.0
+beautifulsoup4>=4.11.0
