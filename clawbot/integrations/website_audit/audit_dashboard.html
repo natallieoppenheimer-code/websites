@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equestro Labs — Website Audit</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #6c63ff;
+      --accent-hover: #8a82ff;
+      --green: #22c55e;
+      --yellow: #facc15;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --gray: #6b7280;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --radius: 10px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+
+    main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+    .audit-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+    }
+    .audit-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+    .audit-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 260px; }
+    .form-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+    .form-group input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus { border-color: var(--accent); }
+    .form-group input::placeholder { color: var(--gray); }
+
+    .btn-run {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 22px;
+      border-radius: 7px;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-run:hover { background: var(--accent-hover); }
+    .btn-run:active { transform: scale(0.97); }
+    .btn-run:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-run .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .btn-run.loading .spinner { display: block; }
+    .btn-run.loading .btn-label { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .run-result {
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      display: none;
+    }
+    .run-result.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
+    .run-result.error   { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: var(--red); }
+
+    .results-section { display: none; margin-top: 24px; }
+    .results-section.visible { display: block; }
+
+    .summary-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 16px 20px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .summary-score {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .summary-score.good { color: var(--green); }
+    .summary-score.warn { color: var(--yellow); }
+    .summary-score.bad { color: var(--red); }
+    .summary-meta { font-size: 0.85rem; color: var(--text-muted); }
+    .target-note {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: rgba(108,99,255,0.12);
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 7px;
+      font-size: 0.9rem;
+      color: var(--accent);
+    }
+
+    .findings-list { margin-top: 16px; }
+    .finding {
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.875rem;
+    }
+    .finding-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .badge-critical { background: rgba(239,68,68,0.15);  color: var(--red); }
+    .badge-warning  { background: rgba(250,204,21,0.15); color: var(--yellow); }
+    .badge-info     { background: rgba(107,114,128,0.15); color: var(--gray); }
+    .finding-category { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+    .finding-message { color: var(--text); margin-bottom: 6px; }
+    .finding-solution {
+      font-size: 0.82rem;
+      color: var(--green);
+      padding-left: 12px;
+      border-left: 3px solid var(--green);
+    }
+    .finding-element { font-size: 0.78rem; color: var(--gray); margin-top: 6px; font-family: monospace; }
+
+    .section-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; }
+
+    .cta-card .cta-form { margin-top: 8px; }
+    .cta-form .form-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
+    .cta-form .form-group { min-width: 180px; flex: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Equestro Labs — Website Audit
+  </div>
+</header>
+
+<main>
+
+  <div class="audit-card">
+    <h2>Run website audit</h2>
+    <p class="card-hint" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">
+      Enter a URL to uncover SEO issues and get specific insights and solutions.
+    </p>
+    <div class="audit-form">
+      <div class="form-group">
+        <label for="url">Website URL</label>
+        <input id="url" type="text" placeholder="https://example.com" />
+      </div>
+      <button class="btn-run" id="runBtn" onclick="runAudit()">
+        <div class="spinner"></div>
+        <span class="btn-label">Run audit</span>
+      </button>
+    </div>
+    <div class="run-result" id="runResult"></div>
+  </div>
+
+  <div class="results-section" id="resultsSection">
+    <div class="audit-card">
+      <h2 class="section-title">Summary</h2>
+      <div class="summary-row" id="summaryRow">
+        <div>
+          <div class="summary-score" id="summaryScore">—</div>
+          <div class="summary-meta" id="summaryMeta">—</div>
+        </div>
+      </div>
+      <div class="target-note" id="targetNote"></div>
+    </div>
+
+    <div class="audit-card">
+      <h2 class="section-title">Insights & solutions</h2>
+      <div class="findings-list" id="findingsList"></div>
+    </div>
+
+    <div class="audit-card cta-card" id="ctaCard">
+      <h2 class="section-title">See the art of the possible</h2>
+      <p class="card-hint" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">
+        We can rebuild your site with proper SEO and show you the alternative. Leave your details and we'll be in touch.
+      </p>
+      <form id="ctaForm" class="cta-form" onsubmit="registerForAlternative(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="businessName">Business name</label>
+            <input id="businessName" type="text" placeholder="Your business or site name" required />
+          </div>
+          <div class="form-group">
+            <label for="contactEmail">Email</label>
+            <input id="contactEmail" type="email" placeholder="you@example.com" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="contactPhone">Phone (optional)</label>
+            <input id="contactPhone" type="tel" placeholder="+1 234 567 8900" />
+          </div>
+          <button type="submit" class="btn-run" id="ctaBtn">
+            <div class="spinner"></div>
+            <span class="btn-label">Show me my SEO alternative</span>
+          </button>
+        </div>
+      </form>
+      <div class="run-result" id="ctaResult"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // Same-origin on Render: leave empty. If the dashboard is on another domain, set window.AUDIT_API_BASE (e.g. https://websites-natalie.onrender.com).
+  const API_BASE = typeof window.AUDIT_API_BASE !== 'undefined' ? window.AUDIT_API_BASE : '';
+  var lastAuditData = null;
+
+  function auditUrl() {
+    const url = document.getElementById('url').value.trim();
+    if (!url) return null;
+    const withScheme = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+    return withScheme;
+  }
+
+  async function runAudit() {
+    const url = auditUrl();
+    if (!url) {
+      alert('Please enter a website URL.');
+      return;
+    }
+
+    const btn = document.getElementById('runBtn');
+    const resultDiv = document.getElementById('runResult');
+    const resultsSection = document.getElementById('resultsSection');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    resultDiv.style.display = 'none';
+
+    try {
+      const base = API_BASE.replace(/\/$/, '');
+      const endpoint = base + '/audit/run';
+      const res = await fetch(endpoint + '?url=' + encodeURIComponent(url), { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || data.error || JSON.stringify(data));
+
+      resultDiv.className = 'run-result success';
+      resultDiv.textContent = 'Audit complete. See insights and solutions below.';
+      resultDiv.style.display = 'block';
+
+      lastAuditData = data;
+      renderReport(data);
+      resultsSection.classList.add('visible');
+    } catch (e) {
+      resultDiv.className = 'run-result error';
+      resultDiv.textContent = 'Audit failed: ' + e.message;
+      resultDiv.style.display = 'block';
+      resultsSection.classList.remove('visible');
+    }
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+
+  function renderReport(data) {
+    const summaryScore = document.getElementById('summaryScore');
+    const summaryMeta = document.getElementById('summaryMeta');
+    const targetNote = document.getElementById('targetNote');
+    const findingsList = document.getElementById('findingsList');
+
+    if (!data.success) {
+      summaryScore.textContent = '—';
+      summaryScore.className = 'summary-score';
+      summaryMeta.textContent = data.error || 'Could not audit this URL.';
+      targetNote.textContent = data.target_note || '';
+      findingsList.innerHTML = '';
+      document.getElementById('ctaCard').style.display = 'none';
+      return;
+    }
+    document.getElementById('ctaCard').style.display = 'block';
+
+    const score = data.summary_score;
+    summaryScore.textContent = score != null ? score + '/100' : '—';
+    summaryScore.className = 'summary-score ' + (score >= 80 ? 'good' : score >= 50 ? 'warn' : 'bad');
+    summaryMeta.textContent = 'Audited: ' + esc(data.url);
+    targetNote.textContent = data.target_note || '';
+
+    const findings = data.findings || [];
+    if (findings.length === 0) {
+      findingsList.innerHTML = '<p style="color:var(--green);">No issues found. Your page looks good.</p>';
+      return;
+    }
+
+    findingsList.innerHTML = findings.map(f => {
+      const severityClass = 'badge-' + (f.severity || 'info');
+      const solutionHtml = f.solution ? `<div class="finding-solution">${esc(f.solution)}</div>` : '';
+      const elementHtml = f.element ? `<div class="finding-element">${esc(f.element)}</div>` : '';
+      return `
+        <div class="finding">
+          <div class="finding-header">
+            <span class="badge ${severityClass}">${esc(f.severity)}</span>
+            <span class="finding-category">${esc(f.category)}</span>
+          </div>
+          <div class="finding-message">${esc(f.message)}</div>
+          ${solutionHtml}
+          ${elementHtml}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function registerForAlternative(e) {
+    e.preventDefault();
+    if (!lastAuditData || !lastAuditData.url) {
+      alert('Please run an audit first.');
+      return;
+    }
+    var base = API_BASE.replace(/\/$/, '');
+    var resultDiv = document.getElementById('ctaResult');
+    var btn = document.getElementById('ctaBtn');
+    resultDiv.style.display = 'none';
+    btn.disabled = true;
+    btn.classList.add('loading');
+    try {
+      var res = await fetch(base + '/website-customers/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_name: document.getElementById('businessName').value.trim(),
+          contact_email: document.getElementById('contactEmail').value.trim(),
+          contact_phone: document.getElementById('contactPhone').value.trim() || undefined,
+          current_site_url: lastAuditData.url,
+          audit_score: lastAuditData.summary_score != null ? lastAuditData.summary_score : undefined,
+          audit_findings_count: (lastAuditData.findings && lastAuditData.findings.length) ? lastAuditData.findings.length : undefined,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.detail || data.message || JSON.stringify(data));
+      resultDiv.className = 'run-result success';
+      resultDiv.textContent = data.message || "We'll build your SEO alternative and be in touch.";
+      resultDiv.style.display = 'block';
+      document.getElementById('ctaForm').reset();
+    } catch (err) {
+      resultDiv.className = 'run-result error';
+      resultDiv.textContent = 'Something went wrong: ' + err.message;
+      resultDiv.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+</script>
+</body>
+</html>

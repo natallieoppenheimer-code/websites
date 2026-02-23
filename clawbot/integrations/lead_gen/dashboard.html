@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equestro Labs — Lead Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #6c63ff;
+      --accent-hover: #8a82ff;
+      --green: #22c55e;
+      --yellow: #facc15;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --gray: #6b7280;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --radius: 10px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .btn-sheets {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 7px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-sheets:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Main layout ─────────────────────────────────────── */
+    main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── Run Pipeline card ───────────────────────────────── */
+    .pipeline-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 28px;
+    }
+    .pipeline-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+    .pipeline-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+    .form-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+    .form-group input,
+    .form-group select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus { border-color: var(--accent); }
+    .form-group select option { background: var(--surface2); }
+
+    .btn-run {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 22px;
+      border-radius: 7px;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-run:hover { background: var(--accent-hover); }
+    .btn-run:active { transform: scale(0.97); }
+    .btn-run:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-run .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .btn-run.loading .spinner { display: block; }
+    .btn-run.loading .btn-label { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .run-result {
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      display: none;
+    }
+    .run-result.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
+    .run-result.error   { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: var(--red); }
+    .card-hint { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+    .btn-campaign { flex: 0 1 auto; }
+
+    /* ── Stats bar ───────────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+    .stat-card .stat-value { font-size: 1.7rem; font-weight: 700; }
+    .stat-card .stat-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ── Table ───────────────────────────────────────────── */
+    .table-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .table-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .table-header-right { display: flex; align-items: center; gap: 10px; }
+    .sheet-tab-label { font-size: 0.78rem; color: var(--text-muted); }
+    .table-header-right select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      min-width: 200px;
+    }
+    .table-meta { font-size: 0.78rem; color: var(--text-muted); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead th {
+      background: var(--surface2);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 10px 14px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    td { padding: 11px 14px; vertical-align: middle; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-name { font-weight: 600; color: var(--text); }
+    .td-muted { color: var(--text-muted); }
+    .td-phone a { color: var(--blue); text-decoration: none; }
+    .td-phone a:hover { text-decoration: underline; }
+
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+    .badge-sourced       { background: rgba(59,130,246,0.15);  color: var(--blue); }
+    .badge-enriched      { background: rgba(250,204,21,0.15);  color: var(--yellow); }
+    .badge-outreach_sent { background: rgba(34,197,94,0.15);   color: var(--green); }
+    .badge-no_bizfile    { background: rgba(107,114,128,0.15); color: var(--gray); }
+    .badge-no_contact    { background: rgba(107,114,128,0.15); color: var(--gray); }
+    .badge-outreach_failed { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    .sent-yes  { color: var(--green); font-weight: 600; }
+    .sent-no   { color: var(--gray); }
+    .sent-fail { color: var(--red); }
+
+    /* Loading / empty states */
+    .state-row td {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 40px 14px;
+    }
+    .refresh-note { text-align: right; font-size: 0.72rem; color: var(--gray); padding: 10px 16px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Equestro Labs — Lead Generator
+  </div>
+  <div class="header-actions">
+    <a
+      class="btn-sheets"
+      href="https://docs.google.com/spreadsheets/d/1yp4YGNb0-BFCfkbtAzaKPNmUNAhyFgX9t_BmV4chZtg/edit"
+      target="_blank"
+      rel="noopener"
+    >
+      ↗ Open in Sheets
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <!-- Run Pipeline -->
+  <div class="pipeline-card">
+    <h2>Run Lead Pipeline</h2>
+    <div class="pipeline-form">
+      <div class="form-group">
+        <label for="area">Area</label>
+        <input id="area" type="text" placeholder="e.g. Morgan Hill CA" value="Morgan Hill CA" />
+      </div>
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="plumber">Plumber</option>
+          <option value="electrician">Electrician</option>
+          <option value="hvac">HVAC</option>
+          <option value="landscaper">Landscaper</option>
+          <option value="pest control">Pest Control</option>
+          <option value="locksmith">Locksmith</option>
+          <option value="pool cleaner">Pool Cleaner</option>
+          <option value="appliance repair">Appliance Repair</option>
+        </select>
+      </div>
+      <button class="btn-run" id="runBtn" onclick="runPipeline()">
+        <div class="spinner"></div>
+        <span class="btn-label">▶ Run Pipeline</span>
+      </button>
+    </div>
+    <div class="run-result" id="runResult"></div>
+  </div>
+
+  <!-- Run Campaign (writes to separate sheet tabs) -->
+  <div class="pipeline-card">
+    <h2>Run campaign (separate tabs)</h2>
+    <p class="card-hint">Campaigns write to their own sheet tabs. After running, switch the "Sheet tab" dropdown above to see leads.</p>
+    <div class="pipeline-form">
+      <button class="btn-run btn-campaign" onclick="runCampaign('electrician_morgan_hill_south_bay')">
+        <span class="btn-label">▶ Electrician (Morgan Hill + South Bay)</span>
+      </button>
+      <button class="btn-run btn-campaign" onclick="runCampaign('pool_cleaner_morgan_hill_south_bay')">
+        <span class="btn-label">▶ Pool Cleaner (Morgan Hill + South Bay)</span>
+      </button>
+    </div>
+    <div class="run-result" id="campaignResult"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="stat-value" id="statTotal">—</div><div class="stat-label">Total Leads</div></div>
+    <div class="stat-card"><div class="stat-value" id="statSent" style="color:var(--green)">—</div><div class="stat-label">Outreach Sent</div></div>
+    <div class="stat-card"><div class="stat-value" id="statEnriched" style="color:var(--yellow)">—</div><div class="stat-label">Enriched</div></div>
+    <div class="stat-card"><div class="stat-value" id="statNoContact" style="color:var(--gray)">—</div><div class="stat-label">No Contact</div></div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <h2>Leads</h2>
+      <div class="table-header-right">
+        <label for="sheetTab" class="sheet-tab-label">Sheet tab:</label>
+        <select id="sheetTab" onchange="onSheetTabChange()">
+          <option value="">Leads (default)</option>
+          <option value="Leads - Electrician South Bay">Leads - Electrician South Bay</option>
+          <option value="Leads - Pool Cleaner South Bay">Leads - Pool Cleaner South Bay</option>
+        </select>
+        <span class="table-meta" id="tableMeta">Loading…</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Business</th>
+            <th>Category</th>
+            <th>Area</th>
+            <th>Owner</th>
+            <th>Best Phone</th>
+            <th>Best Email</th>
+            <th>Status</th>
+            <th>SMS</th>
+            <th>Email</th>
+            <th>Date Added</th>
+          </tr>
+        </thead>
+        <tbody id="leadsBody">
+          <tr class="state-row"><td colspan="10">Loading leads…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="refresh-note" id="refreshNote">Auto-refreshes every 30 seconds</div>
+  </div>
+
+</main>
+
+<script>
+  const SHEET_URL = "https://docs.google.com/spreadsheets/d/1yp4YGNb0-BFCfkbtAzaKPNmUNAhyFgX9t_BmV4chZtg/edit";
+
+  function getSelectedSheetTab() {
+    const sel = document.getElementById('sheetTab');
+    return (sel && sel.value) ? sel.value.trim() : '';
+  }
+
+  async function loadLeads() {
+    const sheetTab = getSelectedSheetTab();
+    const url = sheetTab ? '/leads?sheet_tab=' + encodeURIComponent(sheetTab) : '/leads';
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(await res.text());
+      const leads = await res.json();
+      renderLeads(leads);
+      const now = new Date().toLocaleTimeString();
+      document.getElementById('refreshNote').textContent = `Last refreshed: ${now} · Tab: ${sheetTab || 'Leads (default)'} · Auto-refreshes every 30s`;
+    } catch (e) {
+      document.getElementById('leadsBody').innerHTML =
+        `<tr class="state-row"><td colspan="10">Error loading leads: ${e.message}</td></tr>`;
+    }
+  }
+
+  function onSheetTabChange() {
+    loadLeads();
+  }
+
+  async function runCampaign(campaignId) {
+    const resultDiv = document.getElementById('campaignResult');
+    resultDiv.style.display = 'none';
+    try {
+      const res = await fetch(
+        '/leads/campaign/run?campaign_id=' + encodeURIComponent(campaignId) + '&skip_time_check=true',
+        { method: 'POST' }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+      resultDiv.className = 'run-result success';
+      resultDiv.textContent = 'Campaign started in background. Switch to the campaign tab above and refresh in a minute.';
+      resultDiv.style.display = 'block';
+      setTimeout(loadLeads, 8000);
+    } catch (e) {
+      resultDiv.className = 'run-result error';
+      resultDiv.textContent = 'Campaign error: ' + e.message;
+      resultDiv.style.display = 'block';
+    }
+  }
+
+  function statusBadge(status) {
+    const s = (status || 'sourced').toLowerCase().replace(/\s+/g, '_');
+    const label = s.replace(/_/g, ' ');
+    return `<span class="badge badge-${s}">${label}</span>`;
+  }
+
+  function sentCell(val) {
+    const v = (val || '').toUpperCase();
+    if (v === 'YES') return `<span class="sent-yes">✓ Yes</span>`;
+    if (v === 'FAILED') return `<span class="sent-fail">✗ Failed</span>`;
+    if (v === 'NO PHONE' || v === 'NO EMAIL') return `<span class="sent-no">—</span>`;
+    return `<span class="sent-no">—</span>`;
+  }
+
+  function renderLeads(leads) {
+    const tbody = document.getElementById('leadsBody');
+    if (!leads.length) {
+      tbody.innerHTML = '<tr class="state-row"><td colspan="10">No leads yet. Run the pipeline to get started.</td></tr>';
+      updateStats([]);
+      document.getElementById('tableMeta').textContent = '0 leads';
+      return;
+    }
+
+    tbody.innerHTML = leads.map(lead => {
+      const phone = lead['Best Phone'] || lead['Biz Phone'] || '';
+      const phoneHtml = phone
+        ? `<a href="tel:${phone.replace(/\D/g,'')}">${phone}</a>`
+        : '<span class="td-muted">—</span>';
+      const email = lead['Best Email'] || '';
+      const emailHtml = email
+        ? `<a href="mailto:${email}" style="color:var(--blue);text-decoration:none">${email}</a>`
+        : '<span class="td-muted">—</span>';
+      return `
+        <tr>
+          <td class="td-name" title="${esc(lead['Business Name'])}">${esc(lead['Business Name'])}</td>
+          <td class="td-muted">${esc(lead['Category'])}</td>
+          <td class="td-muted" title="${esc(lead['Area'])}">${esc(lead['Area'])}</td>
+          <td title="${esc(lead['Owner Name'])}">${esc(lead['Owner Name'] || '—')}</td>
+          <td class="td-phone">${phoneHtml}</td>
+          <td>${emailHtml}</td>
+          <td>${statusBadge(lead['Status'])}</td>
+          <td>${sentCell(lead['SMS Sent'])}</td>
+          <td>${sentCell(lead['Email Sent'])}</td>
+          <td class="td-muted">${esc(lead['Date Added'] || '')}</td>
+        </tr>
+      `;
+    }).join('');
+
+    updateStats(leads);
+    document.getElementById('tableMeta').textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
+  }
+
+  function updateStats(leads) {
+    const total = leads.length;
+    const sent = leads.filter(l => (l['Status'] || '').toLowerCase() === 'outreach_sent').length;
+    const enriched = leads.filter(l => (l['Status'] || '').toLowerCase() === 'enriched').length;
+    const noContact = leads.filter(l => ['no_contact', 'no_bizfile'].includes((l['Status'] || '').toLowerCase())).length;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statSent').textContent = sent;
+    document.getElementById('statEnriched').textContent = enriched;
+    document.getElementById('statNoContact').textContent = noContact;
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function runPipeline() {
+    const area = document.getElementById('area').value.trim();
+    const category = document.getElementById('category').value;
+    if (!area) { alert('Please enter an area.'); return; }
+
+    const btn = document.getElementById('runBtn');
+    const resultDiv = document.getElementById('runResult');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    resultDiv.style.display = 'none';
+
+    try {
+      // Use background endpoint — pipeline runs async, we poll for results
+      const params = new URLSearchParams({ area, category });
+      const res = await fetch(`/leads/run?${params}`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+
+      resultDiv.className = 'run-result success';
+      resultDiv.textContent =
+        `Pipeline started for "${category}" in "${area}". ` +
+        `Leads will appear below as they are sourced and enriched (auto-refreshes every 30s). ` +
+        `BizFile lookup + owner search runs in the background.`;
+      resultDiv.style.display = 'block';
+      // Immediate refresh to show newly sourced rows
+      setTimeout(loadLeads, 5000);
+    } catch (e) {
+      resultDiv.className = 'run-result error';
+      resultDiv.textContent = `Pipeline error: ${e.message}`;
+      resultDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+    // Re-enable button after 10s (pipeline runs in background)
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }, 10000);
+  }
+
+  // Initial load + auto-refresh
+  loadLeads();
+  setInterval(loadLeads, 30_000);
+</script>
+</body>
+</html>

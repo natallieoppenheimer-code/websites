@@ -1,5 +1,18 @@
 .env
 .venv/
+.venv39/
 venv/
 __pycache__/
 *.pyc
+.token_cache/
+.memory_store/
+voice_notes/
+*.log
+.DS_Store
+*.swp
+*.swo
+*~
+frontend/node_modules/
+frontend/dist/
+# Keep demo HTML files (they are source-controlled so Render has them at deploy)
+# !clawbot/integrations/website_audit/demos/*.html

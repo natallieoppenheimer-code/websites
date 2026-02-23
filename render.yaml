@@ -1,15 +1,44 @@
-# Deploy this FastAPI SMS app on Render (same style as OpenClaw)
+# Deploy Clawbot API on Render
 # See: https://render.com/docs/deploy-fastapi
 services:
   - type: web
-    name: textlink-sms-api
+    name: clawbot-api
     runtime: python
-    plan: free
+    plan: starter  # Use starter for always-on (free tier sleeps after 15min)
     healthCheckPath: /health
 
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn clawbot_api:app --host 0.0.0.0 --port $PORT
 
     envVars:
+      # Google OAuth (REQUIRED - set these in Render dashboard)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false  # Set to: https://your-app.onrender.com/auth/callback
+      
+      # Token Cache (file-based by default, or use Redis addon)
+      - key: TOKEN_CACHE_TYPE
+        value: file
+      
+      # Multi-Agent Configuration
+      - key: ENABLE_MULTI_AGENT
+        value: "true"
+      - key: AGENT_ROUTING_STRATEGY
+        value: intent_based
+      
+      # Optional: TextLink SMS (if using SMS features)
       - key: TEXTLINK_API_KEY
-        sync: false   # You'll be prompted to enter it when deploying
+        sync: false
+      
+      # Redis Configuration (if using Redis addon, uncomment and set)
+      # - key: TOKEN_CACHE_TYPE
+      #   value: redis
+      # - key: REDIS_HOST
+      #   sync: false
+      # - key: REDIS_PORT
+      #   value: "6379"
+      # - key: REDIS_PASSWORD
+      #   sync: false
