@@ -1,10 +1,15 @@
 """
 Render a shareable HTML audit report page from a stored report dict.
 """
+import html as _html
 
 _SEVERITY_COLOR = {"critical": "#dc2626", "warning": "#d97706", "info": "#2563eb"}
 _SEVERITY_LABEL = {"critical": "Critical", "warning": "Warning", "info": "Info"}
 _SEVERITY_BG    = {"critical": "#fef2f2", "warning": "#fffbeb", "info": "#eff6ff"}
+
+def _e(text: str) -> str:
+    """HTML-escape a string so tags in content are shown literally."""
+    return _html.escape(str(text) if text else "")
 
 
 def render_report_html(report: dict, render_base_url: str = "https://websites-pilv.onrender.com") -> str:
@@ -14,11 +19,12 @@ def render_report_html(report: dict, render_base_url: str = "https://websites-pi
     score         = report.get("summary_score")
     findings      = report.get("findings", [])
     slug          = report.get("slug", "")
+    biz_safe      = _e(business_name)   # HTML-safe business name
 
     score_display = f"{score:.0f}" if score is not None else "—"
     score_color   = "#16a34a" if (score or 0) >= 80 else "#d97706" if (score or 0) >= 60 else "#dc2626"
 
-    # Build finding cards
+    # Build finding cards — escape ALL user-derived text so <tags> show literally
     finding_cards = ""
     for f in findings:
         sev   = f.get("severity", "info")
@@ -26,14 +32,14 @@ def render_report_html(report: dict, render_base_url: str = "https://websites-pi
         bg    = _SEVERITY_BG.get(sev, "#eff6ff")
         label = _SEVERITY_LABEL.get(sev, sev.title())
         finding_cards += f"""
-      <div class="finding" style="border-left:4px solid {color};background:{bg};padding:14px 18px;border-radius:8px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="background:{color};color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;">{label}</span>
-          <span style="font-size:12px;color:#6b7280;text-transform:capitalize;">{f.get("category","")}</span>
+      <div style="border-left:4px solid {color};background:{bg};padding:16px 20px;border-radius:10px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="background:{color};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;text-transform:uppercase;letter-spacing:.5px;">{label}</span>
+          <span style="font-size:12px;color:#6b7280;text-transform:capitalize;">{_e(f.get("category",""))}</span>
         </div>
-        <p style="font-weight:600;color:#111;margin:0 0 4px;">{f.get("message","")}</p>
-        <p style="font-size:13px;color:#374151;margin:0;">
-          <strong>Fix:</strong> {f.get("solution","")}
+        <p style="font-weight:600;color:#111827;margin:0 0 6px;font-size:15px;line-height:1.4;">{_e(f.get("message",""))}</p>
+        <p style="font-size:13px;color:#374151;margin:0;line-height:1.5;word-break:break-word;">
+          <strong style="color:#111;">Fix:</strong> {_e(f.get("solution",""))}
         </p>
       </div>"""
 
@@ -84,8 +90,8 @@ def render_report_html(report: dict, render_base_url: str = "https://websites-pi
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Website Audit Report — {business_name}</title>
-  <meta name="description" content="Free SEO audit report for {business_name}. Score: {score_display}/100 with {len(findings)} findings."/>
+    <title>Website Audit Report — {biz_safe}</title>
+  <meta name="description" content="Free SEO audit report for {biz_safe}. Score: {score_display}/100 with {len(findings)} findings."/>
   <style>
     *{{box-sizing:border-box;margin:0;padding:0}}
     body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111827;}}
@@ -100,7 +106,7 @@ def render_report_html(report: dict, render_base_url: str = "https://websites-pi
   <!-- Header -->
   <div class="card" style="text-align:center;background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff;">
     <p style="font-size:12px;opacity:.7;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Free SEO Audit Report</p>
-    <h1 style="font-size:26px;font-weight:800;margin-bottom:4px;">{business_name}</h1>
+    <h1 style="font-size:26px;font-weight:800;margin-bottom:4px;">{biz_safe}</h1>
     <p style="opacity:.8;font-size:13px;margin-bottom:20px;">
       Audited: <a href="{audited_url}" target="_blank" style="color:#fbbf24;">{audit_url_display}</a>
     </p>

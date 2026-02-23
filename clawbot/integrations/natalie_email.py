@@ -166,11 +166,28 @@ class NatalieEmailService:
         subject: str,
         body: str,
         body_type: str = "plain",
+        html_body: str = "",
     ) -> Dict[str, Any]:
-        """Send an email via DreamHost SMTP (STARTTLS on 587). Appends Natalie's signature if not present."""
+        """Send an email via DreamHost SMTP (STARTTLS on 587).
+
+        If html_body is provided, sends a multipart/alternative message
+        (plain text + HTML). Otherwise sends plain or html as specified
+        by body_type.  Appends Natalie's signature to the plain-text part
+        when not already present.
+        """
+        from email.mime.multipart import MIMEMultipart
+
         if "669-258-7531" not in body and NATALIE_SIGNATURE.strip() not in body:
             body = body.rstrip() + "\n\n" + NATALIE_SIGNATURE
-        message = MIMEText(body, body_type)
+
+        if html_body:
+            # Multipart/alternative: email clients show HTML, fall back to plain
+            message = MIMEMultipart("alternative")
+            message.attach(MIMEText(body, "plain"))
+            message.attach(MIMEText(html_body, "html"))
+        else:
+            message = MIMEText(body, body_type)
+
         message["From"] = self.email
         message["To"] = to
         message["Subject"] = subject

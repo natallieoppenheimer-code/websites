@@ -60,12 +60,14 @@ def send_audit_sms(
             digits = "1" + digits
         e164 = "+" + digits if not digits.startswith("+") else digits
 
+        # Use the same /send-sms endpoint the rest of Clawbot uses
+        clawbot_base = os.getenv("CLAWBOT_BASE_URL", "http://localhost:8000").rstrip("/")
         resp = httpx.post(
-            "https://app.textlinksms.com/api/send",
-            json={"apiKey": TEXTLINK_API_KEY, "phone": e164, "message": msg},
-            timeout=10.0,
+            f"{clawbot_base}/send-sms",
+            json={"phone_number": e164, "text": msg},
+            timeout=30.0,
         )
-        if resp.status_code == 200:
+        if resp.status_code == 200 and resp.json().get("success"):
             logger.info("[outreach] SMS sent to %s for %s", e164, business_name)
             return True
         logger.error("[outreach] SMS failed (%s): %s", resp.status_code, resp.text[:200])
