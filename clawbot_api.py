@@ -1360,7 +1360,7 @@ async def website_customers_register(payload: WebsiteCustomerRegister):
                 if report.summary_score is not None:
                     score = report.summary_score
 
-                # Persist report so /audit/report/{slug} can serve it
+                        # Save to disk now; we'll push to Sheets after the row exists
                 save_report(
                     slug=slug,
                     business_name=payload.business_name,
@@ -1384,6 +1384,19 @@ async def website_customers_register(payload: WebsiteCustomerRegister):
             audit_score=score,
             audit_findings_count=len(findings) if findings else payload.audit_findings_count,
         )
+
+        # Now that the Sheets row exists, persist the report JSON to Sheets too
+        # so it survives Render ephemeral-disk restarts.
+        if findings:
+            try:
+                from clawbot.integrations.website_audit.report_store import REPORTS_DIR
+                import json as _json
+                report_path = REPORTS_DIR / f"{slug}.json"
+                if report_path.exists():
+                    from clawbot.integrations.website_customers.sheets import save_report_json
+                    save_report_json(slug, report_path.read_text(encoding="utf-8"))
+            except Exception as _exc:
+                logger.warning("[register] Could not persist report to Sheets: %s", _exc)
 
         # Natalie sends SMS + email in the background (don't block the response)
         import asyncio
