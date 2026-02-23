@@ -9,6 +9,6 @@ services:
     startCommand: uvicorn clawbot_api:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: RENDER_EXTERNAL_URL
-        value: https://websites-natalie.onrender.com
+        value: https://websites-pilv.onrender.com
       - key: TOKEN_CACHE_TYPE
         value: file
