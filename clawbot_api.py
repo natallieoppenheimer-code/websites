@@ -1140,17 +1140,47 @@ async def audit_dashboard():
 async def audit_report(slug: str):
     """
     Serve a shareable, read-only audit report for a specific business.
-    The report is stored when the customer registers via /website-customers/register.
-    Share this link with the prospect — it shows their score, findings, fixes, and demo.
+
+    Layers:
+      1. Disk cache (fast, ephemeral)
+      2. Google Sheets (persistent across Render redeploys)
+      3. Re-audit on demand from the customer's stored website URL
     """
-    from clawbot.integrations.website_audit.report_store import load_report
+    from clawbot.integrations.website_audit.report_store import load_report, save_report
     from clawbot.integrations.website_audit.report_template import render_report_html
 
+    # Layers 1 + 2: disk then Sheets
     report = load_report(slug)
+
+    # Layer 3: re-audit from stored customer URL
+    if not report:
+        try:
+            from clawbot.integrations.website_customers.sheets import get_customer_by_slug
+            customer = get_customer_by_slug(slug)
+            if customer:
+                website_url = customer.get("Current Site URL", "").strip()
+                business_name = customer.get("Business Name", slug)
+                demo_url = customer.get("Alternative Site URL", f"{_RENDER_BASE}/demos/{slug}")
+                if website_url:
+                    logger.info("[audit/report] Re-auditing '%s' for slug '%s'", website_url, slug)
+                    from clawbot.integrations.website_audit import run_audit, report_to_dict
+                    audit_result = await run_audit(website_url)
+                    report_dict = report_to_dict(audit_result)
+                    save_report(
+                        slug=slug,
+                        business_name=business_name,
+                        audited_url=website_url,
+                        report_dict=report_dict,
+                        demo_url=demo_url,
+                    )
+                    report = load_report(slug)
+        except Exception as exc:
+            logger.warning("[audit/report] Re-audit fallback failed for '%s': %s", slug, exc)
+
     if not report:
         raise HTTPException(
             status_code=404,
-            detail=f"No report found for '{slug}'. Run an audit and register the customer first.",
+            detail=f"No report found for '{slug}'. Visit /audit/dashboard, run an audit, and register the business first.",
         )
     return HTMLResponse(content=render_report_html(report, render_base_url=_RENDER_BASE))
 
@@ -1360,7 +1390,7 @@ async def website_customers_register(payload: WebsiteCustomerRegister):
                 if report.summary_score is not None:
                     score = report.summary_score
 
-                        # Save to disk now; we'll push to Sheets after the row exists
+                # Save to disk now; we'll push to Sheets after the row exists
                 save_report(
                     slug=slug,
                     business_name=payload.business_name,

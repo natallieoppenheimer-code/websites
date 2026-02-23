@@ -210,6 +210,59 @@ def get_customer_by_slug(slug: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def save_report_json(slug: str, report_json_str: str) -> bool:
+    """Write a JSON string into the 'Report JSON' column for the matching slug row."""
+    if not SHEET_ID:
+        return False
+    svc = _service()
+    try:
+        result = _with_retry(lambda: svc.spreadsheets().values().get(
+            spreadsheetId=SHEET_ID,
+            range="%s!A1:Z" % TAB_NAME,
+        ).execute())
+    except Exception as exc:
+        logger.warning("[save_report_json] Could not read sheet: %s", exc)
+        return False
+
+    rows = result.get("values", [])
+    if len(rows) < 2:
+        return False
+    header = rows[0]
+    if "Slug" not in header or "Report JSON" not in header:
+        return False
+
+    slug_col_idx = header.index("Slug")
+    report_col_idx = header.index("Report JSON")
+
+    for row_num, row in enumerate(rows[1:], start=2):
+        padded = row + [""] * (max(slug_col_idx, report_col_idx) + 1 - len(row))
+        if padded[slug_col_idx].strip() == slug.strip():
+            col_letter = _col_letter(report_col_idx)
+            try:
+                _with_retry(lambda: svc.spreadsheets().values().update(
+                    spreadsheetId=SHEET_ID,
+                    range="%s!%s%s" % (TAB_NAME, col_letter, row_num),
+                    valueInputOption="RAW",
+                    body={"values": [[report_json_str]]},
+                ).execute())
+                logger.info("[save_report_json] Saved report JSON for slug '%s'", slug)
+                return True
+            except Exception as exc:
+                logger.warning("[save_report_json] Write failed for '%s': %s", slug, exc)
+                return False
+    logger.warning("[save_report_json] No row found for slug '%s'", slug)
+    return False
+
+
+def load_report_json(slug: str) -> Optional[str]:
+    """Return the stored JSON string from 'Report JSON' column for slug, or None."""
+    customer = get_customer_by_slug(slug)
+    if not customer:
+        return None
+    val = customer.get("Report JSON", "").strip()
+    return val if val else None
+
+
 def list_customers() -> List[Dict[str, Any]]:
     """Return all website customer rows."""
     if not SHEET_ID:
@@ -255,63 +308,6 @@ def _find_row_by_id(customer_id: str) -> Optional[int]:
             continue
         if (row[0].strip() if row else "") == customer_id.strip():
             return i + 1
-    return None
-
-
-def save_report_json(slug: str, report_json: str) -> bool:
-    """Persist the full audit report JSON string to the 'Report JSON' column for this slug."""
-    if not SHEET_ID or not slug:
-        return False
-    svc = _service()
-    try:
-        result = _with_retry(lambda: svc.spreadsheets().values().get(
-            spreadsheetId=SHEET_ID,
-            range="%s!A:P" % TAB_NAME,
-        ).execute())
-    except Exception:
-        return False
-    rows = result.get("values", [])
-    slug_col = COL.get("Slug", 11)
-    report_col = COL.get("Report JSON", 15)
-    for i, row in enumerate(rows):
-        if i == 0:
-            continue
-        row_slug = (row[slug_col].strip() if len(row) > slug_col else "")
-        if row_slug == slug.strip():
-            col_letter = _col_letter(report_col)
-            _with_retry(lambda: svc.spreadsheets().values().update(
-                spreadsheetId=SHEET_ID,
-                range="%s!%s%s" % (TAB_NAME, col_letter, i + 1),
-                valueInputOption="RAW",
-                body={"values": [[report_json]]},
-            ).execute())
-            logger.info("Saved report JSON to Sheets for slug '%s'", slug)
-            return True
-    logger.warning("slug '%s' not found in Sheets — report JSON not saved", slug)
-    return False
-
-
-def load_report_json(slug: str) -> Optional[str]:
-    """Return the stored report JSON string for this slug, or None."""
-    if not SHEET_ID or not slug:
-        return None
-    svc = _service()
-    try:
-        result = _with_retry(lambda: svc.spreadsheets().values().get(
-            spreadsheetId=SHEET_ID,
-            range="%s!A:Q" % TAB_NAME,
-        ).execute())
-    except Exception:
-        return None
-    rows = result.get("values", [])
-    slug_col = COL.get("Slug", 11)
-    report_col = COL.get("Report JSON", 15)
-    for i, row in enumerate(rows):
-        if i == 0:
-            continue
-        row_slug = (row[slug_col].strip() if len(row) > slug_col else "")
-        if row_slug == slug.strip():
-            return row[report_col].strip() if len(row) > report_col else None
     return None
 
 
