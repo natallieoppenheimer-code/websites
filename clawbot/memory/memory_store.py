@@ -6,7 +6,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from pydantic import BaseModel, Field
 import hashlib
-import redis
+try:
+    import redis
+except ImportError:
+    redis = None  # type: ignore
 from clawbot.config import settings
 
 

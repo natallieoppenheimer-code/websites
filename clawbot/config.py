@@ -2,34 +2,26 @@
 import os
 from typing import Optional
 
-# Try to import BaseSettings from pydantic_settings (v2) or pydantic (v1)
 try:
     from pydantic_settings import BaseSettings
+    from pydantic import ConfigDict as _ConfigDict
+    _HAS_SETTINGS = True
 except ImportError:
-    try:
-        from pydantic import BaseSettings
-    except ImportError:
-        # Fallback to environment variables if pydantic not available
-        BaseSettings = None
+    BaseSettings = None  # type: ignore
+    _HAS_SETTINGS = False
 
 
-if BaseSettings:
+if _HAS_SETTINGS:
     class Settings(BaseSettings):
-        """Application settings"""
-        
-        # TextLink / SMS
+        """Application settings (pydantic-settings v2)"""
+        model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
+
         TEXTLINK_API_KEY: Optional[str] = None
         TEXTLINK_WEBHOOK_SECRET: Optional[str] = None
-
-        # ElevenLabs (voice notes for SMS realism)
         ELEVENLABS_API_KEY: Optional[str] = None
         CLAWBOT_BASE_URL: str = "http://localhost:8000"
-
-        # OpenClaw gateway (for forwarding incoming SMS to the agent)
         OPENCLAW_GATEWAY_URL: str = "http://127.0.0.1:18789"
         OPENCLAW_HOOKS_TOKEN: str = "clawbot-hook-secret"
-        
-        # Google OAuth2 Configuration
         GOOGLE_CLIENT_ID: Optional[str] = None
         GOOGLE_CLIENT_SECRET: Optional[str] = None
         GOOGLE_REDIRECT_URI: Optional[str] = None
@@ -42,27 +34,16 @@ if BaseSettings:
             "https://www.googleapis.com/auth/admin.directory.group.readonly "
             "https://www.googleapis.com/auth/spreadsheets"
         )
-        
-        # Token Cache Configuration
-        TOKEN_CACHE_TYPE: str = "file"  # "file" or "redis"
+        TOKEN_CACHE_TYPE: str = "file"
         TOKEN_CACHE_PATH: str = "./.token_cache"
         REDIS_HOST: Optional[str] = None
         REDIS_PORT: int = 6379
         REDIS_DB: int = 0
         REDIS_PASSWORD: Optional[str] = None
-        
-        # Multi-Agent Configuration
         ENABLE_MULTI_AGENT: bool = True
-        AGENT_ROUTING_STRATEGY: str = "round_robin"  # "round_robin", "load_balance", "intent_based"
-        
-        # API Configuration
+        AGENT_ROUTING_STRATEGY: str = "round_robin"
         API_HOST: str = "0.0.0.0"
         API_PORT: int = 8000
-        
-        class Config:
-            env_file = ".env"
-            case_sensitive = True
-            extra = "ignore"
 else:
     # Fallback to environment variables
     class Settings:

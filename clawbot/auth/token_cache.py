@@ -5,7 +5,10 @@ import time
 from typing import Optional, Dict, Any
 from pathlib import Path
 import hashlib
-import redis
+try:
+    import redis
+except ImportError:
+    redis = None  # type: ignore
 from clawbot.config import settings
 
 
