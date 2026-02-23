@@ -10,10 +10,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn clawbot_api:app --host 0.0.0.0 --port $PORT
 
-    # Pin Python 3.11 — required for zoneinfo (stdlib since 3.9) and modern typing syntax
-    pythonVersion: "3.11.9"
-
     envVars:
+      # Python version — controls the Python runtime on Render
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+
       - key: RENDER_EXTERNAL_URL
         value: https://websites-natalie.onrender.com
 
