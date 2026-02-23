@@ -39,16 +39,14 @@ def send_audit_sms(
         return False
 
     score_str = f"{score:.0f}/100" if score is not None else "reviewed"
-    issues_str = f"{findings_count} quick fix{'es' if findings_count != 1 else ''}" if findings_count else "all clear"
 
     msg = (
-        f"Hi! 😊 This is Natalie from Equestro Labs — I hope this finds you well! "
-        f"I took a peek at {business_name}'s website and put together a free SEO report just for you "
-        f"(score: {score_str}, {issues_str}). "
-        f"I also went ahead and built a free demo showing what your site could look like — "
-        f"no strings attached, just wanted to show you what's possible! "
-        f"Report: {report_url} · Demo: {demo_url} "
-        f"Feel free to text me any time: {NATALIE_PHONE} 💙"
+        f"Hi! I'm Natalie from Equestro Labs 😊 "
+        f"I audited {business_name}'s site — score {score_str} with {findings_count} fixable issue{'s' if findings_count != 1 else ''}. "
+        f"I built you a FREE demo of what it could look like: {demo_url} "
+        f"We can fix everything for $250 + $19.99/mo hosting. "
+        f"Full report: {report_url} "
+        f"Reply anytime! 💙 — Natalie {NATALIE_PHONE}"
     )
 
     if _is_dry_run():
@@ -140,15 +138,17 @@ def send_audit_email(
     else:
         findings_section = "<p style='color:#16a34a;font-weight:700;font-size:15px;'>✅ Great news — this site passes all SEO checks!</p>"
 
+    biz_esc = __import__("html").escape(business_name)
+
     html_body = f"""
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;padding:0;margin:0;">
 <div style="max-width:600px;margin:40px auto 24px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);">
 
   <!-- Header -->
   <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:32px 36px 28px;">
-    <p style="font-size:12px;color:rgba(255,255,255,.55);margin:0 0 6px;text-transform:uppercase;letter-spacing:1px;">A little gift from Equestro Labs 🎁</p>
-    <h1 style="font-size:24px;font-weight:800;color:#fff;margin:0 0 8px;line-height:1.2;">{business_name} — Free SEO Report</h1>
-    <div style="display:inline-block;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 16px;margin-top:4px;">
+    <p style="font-size:12px;color:rgba(255,255,255,.55);margin:0 0 6px;text-transform:uppercase;letter-spacing:1px;">A free gift from Equestro Labs 🎁</p>
+    <h1 style="font-size:24px;font-weight:800;color:#fff;margin:0 0 8px;line-height:1.2;">{biz_esc} — Your Free SEO Report</h1>
+    <div style="display:inline-block;background:rgba(255,255,255,.12);border-radius:999px;padding:6px 18px;margin-top:4px;">
       <span style="color:#fff;font-size:14px;font-weight:700;">Score: <span style="color:{score_color};">{score_str}</span></span>
       <span style="color:rgba(255,255,255,.5);font-size:13px;"> · {len(findings)} thing{"s" if len(findings) != 1 else ""} to improve</span>
     </div>
@@ -156,32 +156,51 @@ def send_audit_email(
 
   <div style="padding:32px 36px;">
 
-    <!-- Personal intro -->
+    <!-- Warm personal intro -->
     <p style="color:#374151;font-size:16px;line-height:1.7;margin:0 0 6px;">
-      Hi there! 👋 I'm <strong style="color:#111827;">Natalie</strong> from Equestro Labs.
+      Hi! 👋 I'm <strong style="color:#111827;">Natalie</strong> from Equestro Labs.
     </p>
     <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 24px;">
-      I came across <strong style="color:#111827;">{business_name}</strong> and loved what you're doing — so I went ahead and ran a completely free website audit, just to see where things stand. The good news? There are only a handful of things holding the site back, and they're all totally fixable. 🙌
+      I came across <strong style="color:#111827;">{biz_esc}</strong> and was genuinely impressed by what you're building — so I ran a completely free website audit, just to see where things stand. The good news is there are only a few things holding the site back, and every single one is fixable. 🙌
     </p>
 
     {demo_block}
 
-    <!-- Report link pill -->
+    <!-- Report link -->
     <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:18px 22px;margin-bottom:28px;text-align:center;">
       <p style="font-size:14px;color:#1e40af;font-weight:700;margin:0 0 6px;">📊 Your full interactive report</p>
-      <p style="font-size:13px;color:#6b7280;margin:0 0 10px;">Click the link below — it's yours, forever, completely free.</p>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 10px;">It's yours — free, forever, no login needed.</p>
       <a href="{report_url}" style="color:#2563eb;font-size:14px;font-weight:600;word-break:break-all;">{report_url}</a>
     </div>
 
     {findings_section}
 
-    <!-- CTA -->
-    <div style="margin-top:32px;padding:28px 24px;background:#f0fdf4;border-radius:14px;text-align:center;">
-      <p style="font-size:16px;font-weight:700;color:#111827;margin:0 0 8px;">Want us to fix this for you? 🚀</p>
-      <p style="color:#374151;font-size:14px;line-height:1.6;margin:0 0 20px;">
-        I'd love to walk you through everything — no jargon, no pressure, no catch. Just a quick friendly chat about what we can do for {business_name}.
+    <!-- Pricing offer -->
+    <div style="margin-top:28px;background:linear-gradient(135deg,#fefce8,#fef9c3);border:1.5px solid #fde68a;border-radius:14px;padding:24px 26px;">
+      <p style="font-size:16px;font-weight:800;color:#92400e;margin:0 0 6px;">💛 Ready to make this happen?</p>
+      <p style="font-size:14px;color:#78350f;line-height:1.6;margin:0 0 16px;">
+        We can take care of <em>every single issue</em> above and launch {biz_esc}'s brand-new site for a flat fee — no surprises, no hidden costs, no tech headaches.
       </p>
-      <a href="mailto:natalie@equestrolabs.com?subject=Re: {business_name} website" style="display:inline-block;background:#1e40af;color:#fff;font-weight:700;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:14px;margin:0 6px 8px;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;background:#fff;border-radius:10px;padding:16px 18px;border:1px solid #fde68a;text-align:center;">
+          <p style="font-size:26px;font-weight:800;color:#1e40af;margin:0;">$250</p>
+          <p style="font-size:13px;color:#6b7280;margin:4px 0 0;">One-time setup<br/>Full SEO rebuild</p>
+        </div>
+        <div style="flex:1;min-width:160px;background:#fff;border-radius:10px;padding:16px 18px;border:1px solid #fde68a;text-align:center;">
+          <p style="font-size:26px;font-weight:800;color:#16a34a;margin:0;">$19.99<span style="font-size:14px;font-weight:500;color:#6b7280;">/mo</span></p>
+          <p style="font-size:13px;color:#6b7280;margin:4px 0 0;">Hosting &amp; maintenance<br/>We handle everything</p>
+        </div>
+      </div>
+      <p style="font-size:13px;color:#78350f;margin:14px 0 0;text-align:center;">Cancel anytime. No contracts. We just want to see {biz_esc} thrive. 🌟</p>
+    </div>
+
+    <!-- CTA buttons -->
+    <div style="margin-top:28px;padding:26px 22px;background:#f0fdf4;border-radius:14px;text-align:center;">
+      <p style="font-size:15px;font-weight:700;color:#111827;margin:0 0 6px;">Questions? I'm just a message away 😊</p>
+      <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:0 0 18px;">
+        No jargon, no pressure. Just a friendly chat about what's best for {biz_esc}.
+      </p>
+      <a href="mailto:natalie@equestrolabs.com?subject=Re: {biz_esc} website" style="display:inline-block;background:#1e40af;color:#fff;font-weight:700;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:14px;margin:0 6px 8px;">
         💌 Reply to this email
       </a>
       <a href="sms:{NATALIE_PHONE}" style="display:inline-block;background:#16a34a;color:#fff;font-weight:700;padding:13px 26px;border-radius:10px;text-decoration:none;font-size:14px;margin:0 6px 8px;">
@@ -202,23 +221,23 @@ def send_audit_email(
 </body></html>"""
 
     text_body = (
-        f"Hi! 😊 I'm Natalie from Equestro Labs — I hope this finds you well!\n\n"
-        f"I came across {business_name} and loved what you're doing, so I went ahead and ran a "
-        f"free SEO audit on your website. Here's a quick summary:\n\n"
+        f"Hi! 😊 I'm Natalie from Equestro Labs — hope you're having a great day!\n\n"
+        f"I ran a completely free SEO audit on {business_name}'s website. Here's the summary:\n\n"
         f"  Score: {score_str}\n"
-        f"  Issues found: {len(findings)}\n\n"
-        f"The great news? Every single issue is fixable — and I also went ahead and built a free "
-        f"demo showing what {business_name}'s site could look like all polished up. No strings "
-        f"attached, I just wanted to show you what's possible!\n\n"
-        f"  Your full report (free, forever): {report_url}\n"
-        f"  Your free demo site: {demo_url}\n\n"
-        f"I'd love to chat whenever you're ready — even just a quick text. "
-        f"No pressure at all, just here to help!\n\n"
-        f"Warmly,\nNatalie\nEquestro Labs\n"
-        f"natalie@equestrolabs.com · {NATALIE_PHONE}"
+        f"  Issues found: {len(findings)} (all fixable!)\n\n"
+        f"I also went ahead and built a free demo showing what {business_name}'s site could look "
+        f"like — no strings attached, just wanted to show you what's possible!\n\n"
+        f"  📊 Your full report: {report_url}\n"
+        f"  👀 Your free demo: {demo_url}\n\n"
+        f"If you'd like us to fix everything and launch the new site, here's what it looks like:\n\n"
+        f"  • One-time setup: $250 (full SEO rebuild, everything done for you)\n"
+        f"  • Monthly hosting: $19.99/mo (we handle everything, cancel anytime)\n\n"
+        f"No pressure at all — I just want to make sure you know what's possible. "
+        f"Feel free to reply here or text me directly, I'm always happy to chat!\n\n"
+        f"Warmly,\nNatalie\nEquestro Labs · natalie@equestrolabs.com · {NATALIE_PHONE}"
     )
 
-    subject = f"I built something free for {business_name} 🎁"
+    subject = f"I built something free for {business_name} — and there's an offer inside 🎁"
 
     if _is_dry_run():
         logger.info("[outreach][DRY RUN] Email to %s — %s", to_email, subject)
