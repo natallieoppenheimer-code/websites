@@ -56,7 +56,23 @@ class TokenCache:
                         return json.load(f)
                 except Exception as e:
                     print(f"File cache read error: {e}")
-                    return None
+            # Fallback: read from env var (survives Render redeploys)
+            env_key = f"GOOGLE_TOKEN_DATA_{self._get_cache_key(user_id)}"
+            env_val = os.environ.get(env_key, "")
+            if env_val:
+                try:
+                    data = json.loads(env_val)
+                    # Warm the disk cache so subsequent calls are faster
+                    try:
+                        cache_file.parent.mkdir(parents=True, exist_ok=True)
+                        with open(cache_file, 'w') as f:
+                            json.dump(data, f)
+                        os.chmod(cache_file, 0o600)
+                    except Exception:
+                        pass
+                    return data
+                except Exception as e:
+                    print(f"Env token parse error: {e}")
         return None
     
     def set_token(self, user_id: str, token_data: Dict[str, Any]) -> bool:
