@@ -213,6 +213,65 @@ def load_existing_names(area: str) -> set[str]:
     return existing
 
 
+def load_sms_sent_phones(tabs: Optional[list] = None) -> set:
+    """
+    Return a set of E.164-normalised phones that have already received Touch-1
+    SMS across ALL lead-gen tabs (or the given list of tabs).
+
+    Used by the outreach layer to prevent duplicate messages to the same number
+    even when the same business appears in multiple campaign tabs.
+    """
+    import re
+    default_tabs = [
+        "Leads",
+        "Leads - Plumber Feb26",
+        "Leads - Electrician Feb26",
+        "Leads - HVAC Feb26",
+        "Leads - Electrician South Bay",
+        "Leads - Pool Cleaner South Bay",
+    ]
+    check_tabs = tabs or default_tabs
+    svc = _service()
+    sent = set()
+
+    def _normalise(phone: str) -> str:
+        digits = re.sub(r"\D", "", phone)
+        if len(digits) == 10:
+            digits = "1" + digits
+        return "+" + digits if digits else ""
+
+    for tab in check_tabs:
+        try:
+            result = _with_retry(lambda t=tab: svc.spreadsheets().values().get(
+                spreadsheetId=SHEET_ID,
+                range=f"{t}!A1:Z",
+            ).execute())
+            rows = result.get("values", [])
+            if len(rows) < 2:
+                continue
+            header = rows[0]
+            try:
+                sms_col   = header.index("SMS Sent")
+                phone_col = header.index("Best Phone")
+                biz_col   = header.index("Biz Phone")
+            except ValueError:
+                continue
+            for row in rows[1:]:
+                sms_sent = (row[sms_col].strip().upper() if len(row) > sms_col else "")
+                if sms_sent != "YES":
+                    continue
+                phone = (row[phone_col].strip() if len(row) > phone_col else "") or \
+                        (row[biz_col].strip()   if len(row) > biz_col   else "")
+                normalised = _normalise(phone)
+                if normalised:
+                    sent.add(normalised)
+        except Exception as exc:
+            logger.debug("load_sms_sent_phones: tab '%s' error: %s", tab, exc)
+
+    logger.info("[dedup] %d unique phones already received Touch-1 across all tabs", len(sent))
+    return sent
+
+
 def find_lead_row(business_name: str, area: str) -> Optional[int]:
     """
     Return 1-based row index of a matching lead, or None.

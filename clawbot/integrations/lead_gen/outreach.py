@@ -243,16 +243,34 @@ async def _send_email(to: str, subject: str, body: str) -> bool:
 # ── Public drip entry points ──────────────────────────────────────────────────
 
 async def send_touch1(lead: dict, row_index: int) -> dict[str, bool]:
-    """Send the initial intro SMS (Touch 1)."""
+    """Send the initial intro SMS (Touch 1).
+
+    Guards against sending the same message twice to the same phone number
+    across all campaign sheet tabs (prevents duplicates when a business
+    appears in multiple tabs or when the pipeline is re-run).
+    """
     business = lead.get("Business Name", "your company")
     category = lead.get("Category", "plumber").lower().strip()
     name     = _first_name(lead.get("Owner Name", "")) or "there"
-    phone    = lead.get("Best Phone", "")
+    phone    = lead.get("Best Phone", "") or lead.get("Biz Phone", "")
 
     sms_ok = False
     now    = datetime.now()
 
     if phone:
+        # Cross-tab deduplication: refuse to SMS a number already contacted
+        try:
+            already_sent = sh.load_sms_sent_phones()
+            e164 = _e164(phone)
+            if e164 in already_sent:
+                logger.info(
+                    "[Touch 1] SKIPPED — %s already received Touch-1 on another tab (%s)",
+                    e164, business,
+                )
+                return {"sms": False, "email": False}
+        except Exception as exc:
+            logger.warning("[Touch 1] Cross-tab dedup check failed (non-fatal): %s", exc)
+
         template = _T1_SMS.get(category, _T1_SMS["plumber"])
         text = template.format(name=name, business=business)
         sms_ok = await _send_sms(phone, text)

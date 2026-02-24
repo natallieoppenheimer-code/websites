@@ -188,13 +188,42 @@ class NatalieEmailService:
         else:
             message = MIMEText(body, body_type)
 
+        import time as _time
         message["From"] = self.email
         message["To"] = to
         message["Subject"] = subject
+        message["Date"] = email.utils.formatdate(localtime=True)
+
+        raw = message.as_bytes()
+
+        # Send via SMTP
         with smtplib.SMTP(self.smtp_host, self.smtp_port) as smtp:
             smtp.starttls(context=ssl.create_default_context())
             smtp.login(self.email, self.password)
-            smtp.sendmail(self.email, [to], message.as_string())
+            smtp.sendmail(self.email, [to], raw)
+
+        # Save to Sent folder via IMAP so it appears in the outbox
+        try:
+            ssl_ctx = ssl.create_default_context()
+            with imaplib.IMAP4_SSL(self.imap_host, self.imap_port, ssl_context=ssl_ctx) as imap:
+                imap.login(self.email, self.password)
+                # DreamHost uses "Sent" — fall back to "INBOX.Sent" if needed
+                for sent_folder in ("Sent", "INBOX.Sent", "Sent Items"):
+                    try:
+                        imap.append(
+                            sent_folder,
+                            "\\Seen",
+                            imaplib.Time2Internaldate(_time.time()),
+                            raw,
+                        )
+                        break
+                    except Exception:
+                        continue
+        except Exception as exc:
+            # Non-fatal — email was still sent
+            import logging as _log
+            _log.getLogger(__name__).warning("Could not save to Sent folder: %s", exc)
+
         return {"id": "", "thread_id": "", "label_ids": []}
 
     def get_labels(self) -> List[Dict[str, Any]]:
