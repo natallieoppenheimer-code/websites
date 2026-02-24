@@ -113,6 +113,19 @@ def ensure_sheet() -> None:
             body={"values": [HEADERS]},
         ).execute())
         logger.info("Website Customers header row written.")
+    else:
+        # Append any columns that exist in HEADERS but not yet in the sheet
+        missing = [h for h in HEADERS if h not in existing_headers]
+        if missing:
+            start_col = _col_letter(len(existing_headers))
+            new_headers = existing_headers + missing
+            _with_retry(lambda: svc.spreadsheets().values().update(
+                spreadsheetId=SHEET_ID,
+                range="%s!A1" % TAB_NAME,
+                valueInputOption="RAW",
+                body={"values": [new_headers]},
+            ).execute())
+            logger.info("Website Customers: added missing header columns: %s", missing)
 
 
 RENDER_BASE_URL = os.getenv("RENDER_EXTERNAL_URL", "https://websites-pilv.onrender.com")
