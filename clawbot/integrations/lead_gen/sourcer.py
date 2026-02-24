@@ -15,13 +15,25 @@ LEAD_API_HOST = "lead-generation2.p.rapidapi.com"
 LEAD_API_URL = "https://lead-generation2.p.rapidapi.com/lead"
 
 
+_CATEGORY_SEARCH_TERM: dict = {
+    "roofing":     "roofing contractor",
+    "landscaping": "landscaping company",
+    "auto repair": "auto mechanic shop",
+    "pest control":"pest control company",
+    "painting":    "house painter",
+    "general contractor": "general contractor",
+    "pool cleaner":"pool cleaning service",
+}
+
+
 async def fetch_leads(area: str, category: str) -> list[dict]:
     """Call the lead-generation API and return the raw result list."""
     headers = {
         "x-rapidapi-host": LEAD_API_HOST,
         "x-rapidapi-key": RAPIDAPI_KEY,
     }
-    params = {"area": area, "search": category}
+    search_term = _CATEGORY_SEARCH_TERM.get(category.lower().strip(), category)
+    params = {"area": area, "search": search_term}
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(LEAD_API_URL, headers=headers, params=params)

@@ -36,6 +36,66 @@ CAMPAIGN_POOL_CLEANER_MORGAN_HILL_SOUTH_BAY = {
     "description": "Pool service professionals in Morgan Hill and South Bay CA, 6 AM–11 PM PST",
 }
 
+# ── Feb 2026 Blitz: Plumber · Electrician · HVAC across San Jose + South Bay ─
+CAMPAIGN_PLUMBER_SAN_JOSE = {
+    "id": "plumber_san_jose",
+    "category": "plumber",
+    "areas": ["San Jose CA", "Morgan Hill CA", "Gilroy CA"],
+    "sheet_tab": "Leads - Plumber Feb26",
+    "description": "Plumbers across San Jose, Morgan Hill, and Gilroy CA",
+}
+
+CAMPAIGN_ELECTRICIAN_SAN_JOSE = {
+    "id": "electrician_san_jose",
+    "category": "electrician",
+    "areas": ["San Jose CA", "Santa Clara CA", "Sunnyvale CA"],
+    "sheet_tab": "Leads - Electrician Feb26",
+    "description": "Electricians across San Jose, Santa Clara, and Sunnyvale CA",
+}
+
+CAMPAIGN_HVAC_SAN_JOSE = {
+    "id": "hvac_san_jose",
+    "category": "hvac",
+    "areas": ["San Jose CA", "Campbell CA", "Los Gatos CA"],
+    "sheet_tab": "Leads - HVAC Feb26",
+    "description": "HVAC contractors across San Jose, Campbell, and Los Gatos CA",
+}
+
+CAMPAIGN_ROOFING_SAN_JOSE = {
+    "id": "roofing_san_jose",
+    "category": "roofing",
+    "areas": ["San Jose CA", "Santa Clara CA", "Milpitas CA"],
+    "sheet_tab": "Leads - Roofing Feb26",
+    "description": "Roofing contractors across San Jose, Santa Clara, and Milpitas CA",
+}
+
+CAMPAIGN_LANDSCAPING_SAN_JOSE = {
+    "id": "landscaping_san_jose",
+    "category": "landscaping",
+    "areas": ["San Jose CA", "Saratoga CA", "Los Gatos CA"],
+    "sheet_tab": "Leads - Landscaping Feb26",
+    "description": "Landscaping businesses across San Jose, Saratoga, and Los Gatos CA",
+}
+
+CAMPAIGN_AUTO_REPAIR_SAN_JOSE = {
+    "id": "auto_repair_san_jose",
+    "category": "auto repair",
+    "areas": ["San Jose CA", "Sunnyvale CA", "Mountain View CA"],
+    "sheet_tab": "Leads - Auto Repair Feb26",
+    "description": "Auto repair shops across San Jose, Sunnyvale, and Mountain View CA",
+}
+
+_CAMPAIGNS = {
+    "electrician_morgan_hill_south_bay":  CAMPAIGN_ELECTRICIAN_MORGAN_HILL_SOUTH_BAY,
+    "pool_cleaner_morgan_hill_south_bay": CAMPAIGN_POOL_CLEANER_MORGAN_HILL_SOUTH_BAY,
+    "plumber_san_jose":                   CAMPAIGN_PLUMBER_SAN_JOSE,
+    "electrician_san_jose":               CAMPAIGN_ELECTRICIAN_SAN_JOSE,
+    "hvac_san_jose":                      CAMPAIGN_HVAC_SAN_JOSE,
+    "roofing_san_jose":                   CAMPAIGN_ROOFING_SAN_JOSE,
+    "landscaping_san_jose":               CAMPAIGN_LANDSCAPING_SAN_JOSE,
+    "auto_repair_san_jose":               CAMPAIGN_AUTO_REPAIR_SAN_JOSE,
+}
+
 
 def is_within_send_window_pst() -> bool:
     """True if current time is between 6 AM and 11 PM PST (inclusive of 11 PM)."""
@@ -52,12 +112,9 @@ async def run_campaign(campaign_id: str, *, skip_time_check: bool = False) -> di
     If skip_time_check is False, only runs when current time is 6 AM–11 PM PST.
     Returns combined summary for all areas.
     """
-    if campaign_id == "electrician_morgan_hill_south_bay":
-        config = CAMPAIGN_ELECTRICIAN_MORGAN_HILL_SOUTH_BAY
-    elif campaign_id == "pool_cleaner_morgan_hill_south_bay":
-        config = CAMPAIGN_POOL_CLEANER_MORGAN_HILL_SOUTH_BAY
-    else:
-        raise ValueError(f"Unknown campaign: {campaign_id}")
+    config = _CAMPAIGNS.get(campaign_id)
+    if not config:
+        raise ValueError(f"Unknown campaign: {campaign_id}. Known: {list(_CAMPAIGNS)}")
 
     if not skip_time_check and not is_within_send_window_pst():
         now_pst = datetime.now(PST).strftime("%H:%M %Z")
